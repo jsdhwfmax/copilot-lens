@@ -351,3 +351,28 @@ describe("blendResults", () => {
     expect(blendResults([], [], 10)).toEqual([]);
   });
 });
+
+describe("semantic index refresh regressions", () => {
+  it("indexes added sessions and drops deleted sessions on refresh", () => {
+    const index = new SemanticIndex();
+    index.build([makeEntry("old", "orchard", [])]);
+    expect(index.search("orchard").map(r => r.entry.id)).toEqual(["old"]);
+    index.build([makeEntry("new", "telescope", [])]);
+    expect(index.search("telescope").map(r => r.entry.id)).toEqual(["new"]);
+    expect(index.search("orchard")).toEqual([]);
+  });
+  it("updates changed content even when the session count and IDs are unchanged", () => {
+    const index = new SemanticIndex();
+    index.build([makeEntry("same", "orchard", [])]);
+    index.build([makeEntry("same", "telescope", [])]);
+    expect(index.search("telescope").map(r => r.entry.id)).toEqual(["same"]);
+    expect(index.search("orchard")).toEqual([]);
+  });
+  it("clears search results when all sessions are removed", () => {
+    const index = new SemanticIndex();
+    index.build([makeEntry("old", "orchard", [])]);
+    index.build([]);
+    expect(index.search("orchard")).toEqual([]);
+    expect(index.isBuilt()).toBe(false);
+  });
+});

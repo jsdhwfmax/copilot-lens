@@ -94,10 +94,14 @@ export class SemanticIndex {
   private corpus: TfIdfCorpus | null = null;
   private docVectors: Map<string, Float32Array> = new Map();
   private entries: SearchEntry[] = [];
+  private snapshot = "";
 
   /** Build the corpus and document vectors from already-indexed search entries. */
   build(entries: SearchEntry[]): void {
-    if (this.corpus !== null) return; // no-op if already built
+    const snapshot = JSON.stringify(entries);
+    if (snapshot === this.snapshot) return;
+    this.clear();
+    this.snapshot = snapshot;
     if (entries.length === 0) return;
     this.entries = entries;
     this.corpus = buildCorpus(entries);
@@ -138,6 +142,7 @@ export class SemanticIndex {
 
   clear(): void {
     this.corpus = null;
+    this.snapshot = "";
     this.docVectors.clear();
     this.entries = [];
   }
