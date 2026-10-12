@@ -704,9 +704,12 @@ function renderBookmarkFilterBar() {
 }
 
 async function toggleBookmark(sessionId) {
+  const openCard = sessionList.querySelector(".session-card.selected");
+  const detailIsOpen = openCard && openCard.dataset.id === sessionId;
   const existing = bookmarks[sessionId];
   if (existing) {
-    await fetch(`/api/bookmarks/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
+    const res = await fetch(`/api/bookmarks/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
+    if (!res.ok) throw new Error(`Bookmark deletion failed (${res.status})`);
     delete bookmarks[sessionId];
   } else {
     const res = await fetch(`/api/bookmarks/${encodeURIComponent(sessionId)}`, {
@@ -714,14 +717,14 @@ async function toggleBookmark(sessionId) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tags: [], note: "" }),
     });
+    if (!res.ok) throw new Error(`Bookmark save failed (${res.status})`);
     const bm = await res.json();
     bookmarks[sessionId] = bm;
   }
   await loadBookmarks();
   renderSessions();
   // If detail pane is open for this session, re-render its bookmark section
-  const openCard = sessionList.querySelector(".session-card.selected");
-  if (openCard && openCard.dataset.id === sessionId) {
+  if (detailIsOpen) {
     refreshDetailBookmarkSection(sessionId);
   }
 }
@@ -732,6 +735,7 @@ async function saveBookmarkDetail(sessionId, tags, note) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ tags, note }),
   });
+  if (!res.ok) throw new Error(`Bookmark save failed (${res.status})`);
   const bm = await res.json();
   bookmarks[sessionId] = bm;
   // Update session object tags too so card re-renders correctly
