@@ -173,11 +173,9 @@ describe("formatAsOpenAI", () => {
         { type: "assistant.message",     id: "e3", timestamp: "", data: { content: "done" } },
       ],
     });
-    // tool events are not user/assistant so they are still skipped in extractMessages
-    // (tool calls don't have a role mapping — they are silently filtered)
     const r = formatAsOpenAI(detail, { includeTools: true });
-    // tool.execution_start has no role mapping so it still won't appear as user/assistant
-    expect(r.messages).toHaveLength(2);
+    expect(JSON.stringify(r.messages)).toContain("tool ran");
+    expect(r.messages.filter(m => m.role === "user")).toHaveLength(1);
   });
 
   it("strips thinking blocks", () => {
@@ -312,5 +310,21 @@ describe("parseExportArgs", () => {
     expect(a.minTurns).toBe(3);
     expect(a.format).toBe("sharegpt");
     expect(a.output).toBe("sft.jsonl");
+  });
+});
+
+
+describe("tool export contract regressions", () => {
+  const detail = makeDetail({ events: [
+    { type: "user.message", id: "u", timestamp: "", data: { content: "go" } },
+    { type: "tool.execution_start", id: "t", timestamp: "", data: { content: "unique-tool-payload", tool: "bash" } },
+    { type: "assistant.message", id: "a", timestamp: "", data: { content: "done" } },
+  ] });
+  it("ShareGPT includes tool information when explicitly requested", () => {
+    expect(JSON.stringify(formatAsShareGPT(detail, { includeTools: true }).conversations)).toContain("unique-tool-payload");
+  });
+  it("both formats exclude tools by default", () => {
+    expect(JSON.stringify(formatAsOpenAI(detail, {}).messages)).not.toContain("unique-tool-payload");
+    expect(JSON.stringify(formatAsShareGPT(detail, {}).conversations)).not.toContain("unique-tool-payload");
   });
 });
