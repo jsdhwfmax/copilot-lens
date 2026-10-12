@@ -94,8 +94,9 @@ export function readCursorTabs(dataDir: string): CursorTab[] {
 // ============ Helpers ============
 
 function msToIso(ms: number | undefined): string {
-  if (!ms) return "";
-  return new Date(ms).toISOString();
+  if (typeof ms !== "number" || !ms || !Number.isFinite(ms)) return "";
+  const date = new Date(ms);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : "";
 }
 
 function deriveStatus(lastSendTime: number | undefined): SessionStatus {
@@ -266,8 +267,8 @@ function _computeCursorAnalytics(): CursorAnalyticsEntry[] {
       const timestamps: number[] = [];
 
       for (const bubble of tab.bubbles ?? []) {
-        if (bubble.timingInfo?.clientStartTime) {
-          timestamps.push(bubble.timingInfo.clientStartTime);
+        if (msToIso(bubble.timingInfo?.clientStartTime)) {
+          timestamps.push(bubble.timingInfo!.clientStartTime!);
         }
         if (bubble.type === "user") {
           const text = (bubble.text || bubble.richText || "").trim();
