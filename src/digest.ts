@@ -117,15 +117,11 @@ export function getDigest(period: DigestPeriod = "week"): DigestData {
       const evPath = path.join(sDir, s.id, "events.jsonl");
       try {
         if (fs.existsSync(evPath)) {
-          const stat = fs.statSync(evPath);
-          const readSize = Math.min(stat.size, 1024 * 1024);
-          const buf = Buffer.alloc(readSize);
-          const fd = fs.openSync(evPath, "r");
-          fs.readSync(fd, buf, 0, readSize, Math.max(0, stat.size - readSize));
-          fs.closeSync(fd);
+          // Digest totals must cover the full session, not only the last MiB.
+          const contents = fs.readFileSync(evPath, "utf-8");
           const tsList: number[] = [];
 
-          for (const line of buf.toString("utf-8").split("\n")) {
+          for (const line of contents.split("\n")) {
             if (!line.trim()) continue;
             try {
               const ev = JSON.parse(line);
