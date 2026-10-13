@@ -80,3 +80,5 @@ Stack: Node + Express + TypeScript, vanilla frontend, Chart.js, Ink for the TUI,
 ## License
 
 MIT
+
+With bulk export, `--include-tools` preserves tool start/completion data as labeled `[tool event]` assistant-text traces in both formats. It does not generate native function-call training records or include private thinking events.

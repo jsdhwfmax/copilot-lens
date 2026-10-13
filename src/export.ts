@@ -13,7 +13,7 @@ export interface ExportOptions {
   minTurns?: number;   // minimum conversation turns (user messages)
   minTokens?: number;  // minimum token count (skipped when data unavailable)
   format?: ExportFormat;
-  includeTools?: boolean; // include tool call events (default: false)
+  includeTools?: boolean; // include labeled tool traces as assistant text (default: false)
 }
 
 export interface OpenAIMessage {
@@ -115,7 +115,14 @@ function extractMessages(
   if (!session) return [];
   const messages: Array<{ role: "user" | "assistant"; content: string }> = [];
   for (const e of session.events) {
-    if (!includeTools && e.type === "tool.execution_start") continue;
+    if (e.type === "tool.execution_start" || e.type === "tool.execution_complete") {
+      if (includeTools) {
+        // Text traces work in both export formats without inventing missing
+        // function-call IDs or claiming that these records are native tool calls.
+        messages.push({ role: "assistant", content: "[tool event] " + JSON.stringify({ type: e.type, data: e.data }) });
+      }
+      continue;
+    }
     if (e.type === "assistant.thinking") continue;
     const content = typeof e.data?.content === "string" ? e.data.content.trim() : "";
     if (!content) continue;

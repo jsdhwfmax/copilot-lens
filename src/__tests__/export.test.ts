@@ -328,3 +328,21 @@ describe("tool export contract regressions", () => {
     expect(JSON.stringify(formatAsShareGPT(detail, {}).conversations)).not.toContain("unique-tool-payload");
   });
 });
+
+
+it("exports tool arguments/results in order without changing conversation turn counts", () => {
+  const detail = makeDetail({ events: [
+    { type: "user.message", id: "u", timestamp: "", data: { content: "run" } },
+    { type: "tool.execution_start", id: "t", timestamp: "", data: { tool: "bash", arguments: { command: "pwd" } } },
+    { type: "tool.execution_complete", id: "r", timestamp: "", data: { output: "/project", success: true } },
+    { type: "assistant.message", id: "a", timestamp: "", data: { content: "done" } },
+  ] });
+  const record = formatAsOpenAI(detail, { includeTools: true });
+  expect(record.messages).toHaveLength(4);
+  expect(record.messages[1].role).toBe("assistant");
+  expect(JSON.parse(record.messages[1].content.slice("[tool event] ".length))).toEqual({ type: "tool.execution_start", data: { tool: "bash", arguments: { command: "pwd" } } });
+  expect(record.messages[2].content).toContain("/project");
+  expect(record.session_quality.turn_count).toBe(1);
+  expect(formatAsShareGPT(detail, { includeTools: true }).conversations[2]).toEqual({ from: "gpt", value: record.messages[2].content });
+  expect(formatAsOpenAI(detail, {}).messages.map(m => m.content)).toEqual(["run", "done"]);
+});
